@@ -13,24 +13,35 @@ public class ProductoController : ControllerBase
     }
 
     [HttpPost("CrearProducto")]
-    public IActionResult CreateProduct(Productos producto)
+    public IActionResult CrearProduct(Producto producto)
     {
-        _productoRepositoy.CreateProduct(producto);
-        return Ok();
+        _productoRepositoy.CrearProducto(producto);
+        return Ok("Producto dado de alta!");
     }
 
     [HttpPut("ActualizarProducto")]
-    public IActionResult UpdateProduct(int id, Productos producto)
+    public IActionResult UpdateProduct(int id, Producto producto)
     {
-        _productoRepositoy.UpdateProduct(id, producto);
+        _productoRepositoy.ActualizarProducto(id, producto);
         return Ok();
     }
 
-    [HttpGet("productos")]
-    public IActionResult GetAll()
+    [HttpGet("ListarProductos")]
+    public IActionResult ObtenerTodos()
     {
-        var productos = _productoRepositoy.GetAllProductos();
-        return Ok(productos);
+        var productos = _productoRepositoy.ObtenerTodosProductos();
+        return productos != null ? Ok(productos) : NotFound("No se encontraron productos");
     }
-
+    [HttpGet("MostrarProducto/{id}")]
+    public IActionResult ObtenerProducto(int id)
+    {
+        Producto prodObtenido = _productoRepositoy.ObtenerProductoXId(id);
+        return prodObtenido != null ? Ok(prodObtenido) : NotFound($"No se encontro el producto con el id: {id}");
+    }
+    [HttpDelete("ElimiarProducto/{id}")]
+    public IActionResult EliminarProducto(int id)
+    {
+        var eliminado = _productoRepositoy.EliminarProducto(id);
+        return eliminado != null ? Ok(eliminado) : NotFound($"No se encontro el producto con el id: {id}");
+    }
 }

@@ -6,35 +6,36 @@ public class ProductoRepository
 {
     private string cadenaConexion = "Data Source = Db/Tienda.db"; //Path de la BD
 
-    public void CreateProduct(Productos producto)
+    public void CrearProducto(Producto producto)
     {
         string queryConsulta = "INSERT INTO Productos (Descripcion, Precio) VALUES (@Descripcion, @Precio)"; //Creo la consulta
-        using var conection = new SqliteConnection(cadenaConexion); //Creo conexion
+        using SqliteConnection conection = new SqliteConnection(cadenaConexion); //Creo conexion
         conection.Open(); //Conecto
 
-        var command = new SqliteCommand(queryConsulta, conection); //Ejecuto consulta
-        command.Parameters.Add(new SqliteParameter("@Descripcion", producto.descripcion)); //Le paso los parametros a la consulta
-        command.Parameters.Add(new SqliteParameter("@Precio", producto.precio));
+        SqliteCommand command = new SqliteCommand(queryConsulta, conection); //Ejecuto consulta
+        command.Parameters.Add(new SqliteParameter("@Descripcion", producto.Descripcion)); //Le paso los parametros a la consulta
+        command.Parameters.Add(new SqliteParameter("@Precio", producto.Precio));
         command.ExecuteNonQuery(); //Como no devuelve nada, ejecuto esto, si algo sale mal, tira excepcion
         conection.Close();//Desconecto
     }
-    public void UpdateProduct(int idProduct, Productos productoActualizar)
+    public void ActualizarProducto(int idProduct, Producto productoActualizar)
     {
         string queryConsulta = "UPDATE Productos SET Descripcion = @Descripcion, Precio = @Precio WHERE idProducto = @id";
         using var conection = new SqliteConnection(cadenaConexion);
         conection.Open();
 
         var command = new SqliteCommand(queryConsulta, conection);
-        command.Parameters.Add(new SqliteParameter("@Descripcion", productoActualizar.descripcion));
-        command.Parameters.Add(new SqliteParameter("@Precio", productoActualizar.precio));
+        command.Parameters.Add(new SqliteParameter("@Descripcion", productoActualizar.Descripcion));
+        command.Parameters.Add(new SqliteParameter("@Precio", productoActualizar.Precio));
+        command.Parameters.Add(new SqliteParameter("@id", idProduct));
         command.ExecuteNonQuery();
         conection.Close();
     }
 
-    public List<Productos> GetAllProductos()
+    public List<Producto> ObtenerTodosProductos()
     {
         string queryConsulta = "SELECT * FROM productos"; //Creo la consulta que quiero realizar
-        List<Productos> productos = new List<Productos>(); //Creo la lista para guardar lo que trae la consulta
+        List<Producto> productos = new List<Producto>(); //Creo la lista para guardar lo que trae la consulta
 
         using var conection = new SqliteConnection(cadenaConexion);//Creo la conexion mediante el path de la BD
         conection.Open(); //Me conecto
@@ -45,11 +46,11 @@ public class ProductoRepository
         {
             while (reader.Read()) //Leo linea por linea
             {
-                var producto = new Productos //Creo nuevos objetos con los datos obtenidos de la BD
+                var producto = new Producto //Creo nuevos objetos con los datos obtenidos de la BD
                 {
-                    idProducto = Convert.ToInt32(reader["idProducto"]),
-                    descripcion = reader["Descripcion"].ToString(),
-                    precio = Convert.ToInt32(reader["Precio"])
+                    IdProducto = Convert.ToInt32(reader["idProducto"]),
+                    Descripcion = reader["Descripcion"].ToString(),
+                    Precio = Convert.ToInt32(reader["Precio"])
                 };
                 productos.Add(producto); //Los guardo en la lista
             }
@@ -57,10 +58,10 @@ public class ProductoRepository
         conection.Close(); //Cierro 
         return productos; //Devuelvo la lista
     }
-    public Productos GetProductById(int idProduct)
+    public Producto ObtenerProductoXId(int idProduct)
     {
-        string queryConsulta = "SELECT Descripcion, Precio FROM Productos WHERE idProducto = @id";
-        Productos productoConsultado = null;
+        string queryConsulta = "SELECT * FROM Productos WHERE IdProducto = @id";
+        Producto productoConsultado = null;
 
         using var conection = new SqliteConnection(cadenaConexion);
         conection.Open();
@@ -72,25 +73,28 @@ public class ProductoRepository
         {
             if (reader.Read())
             {
-                productoConsultado.descripcion = reader["Descripcion"].ToString();
-                productoConsultado.precio = Convert.ToInt32(reader["Precio"]);
+                productoConsultado.IdProducto = Convert.ToInt32(reader["IdProducto"]);
+                productoConsultado.Descripcion = reader["Descripcion"].ToString();
+                productoConsultado.Precio = Convert.ToInt32(reader["Precio"]);
             }
         }
         conection.Close();
         return productoConsultado;
     }
 
-    public void DeleteProduct(int idProduct)
+    public Producto EliminarProducto(int idProduct)
     {
-        string queryConsulta = "DELETE FROM Productos WHERE idProducto = @id";
+        string queryConsulta = "DELETE FROM Productos WHERE IdProducto = @id";
 
         using var conection = new SqliteConnection(cadenaConexion);
         conection.Open();
 
         using var command = new SqliteCommand(queryConsulta, conection);
         command.Parameters.Add(new SqliteParameter("@id", idProduct));
+        Producto prodEliminado = ObtenerProductoXId(idProduct); //Por si quiero devolver el producto que elimine
 
-        command.ExecuteNonQuery();
+        int eliminado = command.ExecuteNonQuery();
         conection.Close();
+        return eliminado == 0 ? null : prodEliminado;
     }
 }
