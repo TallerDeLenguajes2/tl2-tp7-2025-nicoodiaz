@@ -61,7 +61,7 @@ public class ProductoRepository
     public Producto ObtenerProductoXId(int idProduct)
     {
         string queryConsulta = "SELECT * FROM Productos WHERE IdProducto = @id";
-        Producto productoConsultado = null;
+        Producto productoConsultado = new Producto();
 
         using var conection = new SqliteConnection(cadenaConexion);
         conection.Open();

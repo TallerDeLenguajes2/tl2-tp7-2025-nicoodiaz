@@ -8,7 +8,7 @@ public class PresupuestosRepository
 
     ProductoRepository _repositoryProducto = new ProductoRepository();
 
-    public void CrearPresupuesto(Presupuesto presupuesto)
+    public bool CrearPresupuesto(Presupuesto presupuesto)
     {
         string queryConsulta = "INSERT INTO Presupuestos (NombreDestinatario, FechaCreacion) VALUES (@NombreDestinatario, @FechaCreacion)"; //Creo la consulta
         using var conection = new SqliteConnection(cadenaConexion); //Creo conexion
@@ -17,8 +17,12 @@ public class PresupuestosRepository
         var command = new SqliteCommand(queryConsulta, conection); //Ejecuto consulta
         command.Parameters.Add(new SqliteParameter("@NombreDestinatario", presupuesto.NombreDestinatario)); //Le paso los parametros a la consulta
         command.Parameters.Add(new SqliteParameter("@FechaCreacion", presupuesto.FechaCreacion.ToString("yyyy-MM-dd")));
-        command.ExecuteNonQuery(); //Como no devuelve nada, ejecuto esto, si algo sale mal, tira excepcion
-        conection.Close();//Desconecto
+        bool resultado = command.ExecuteNonQuery() != 0; //Como no devuelve nada, ejecuto esto, si algo sale mal, tira excepcion
+        if (resultado)
+        {
+            return true;
+        }
+        return false;
     }
     public List<Presupuesto> ObtenerTodosPresupuestos()
     {
@@ -34,18 +38,45 @@ public class PresupuestosRepository
         {
             while (reader.Read()) //Leo linea por linea
             {
+                int idpresu = Convert.ToInt32(reader["idPresupuesto"]);
                 var presupuesto = new Presupuesto //Creo nuevos objetos con los datos obtenidos de la BD
                 {
-                    IdPresupuesto = Convert.ToInt32(reader["idPresupuesto"]),
+                    IdPresupuesto = idpresu,
                     NombreDestinatario = reader["NombreDestinatario"].ToString(),
-                    FechaCreacion = Convert.ToDateTime(reader["FechaCreacion"])
-
+                    FechaCreacion = Convert.ToDateTime(reader["FechaCreacion"]),
+                    Detalles = ObtenerSoloDetalles(idpresu)
                 };
                 presupuestos.Add(presupuesto); //Los guardo en la lista
             }
         }
         conection.Close(); //Cierro 
         return presupuestos; //Devuelvo la lista
+    }
+    public List<PresupuestoDetalle> ObtenerSoloDetalles(int idPresupuesto)
+    {
+        using var conection = new SqliteConnection(cadenaConexion);
+        conection.Open();
+
+        string queryConsulta = "SELECT * FROM PresupuestosDetalle WHERE IdPresupuesto = @id";
+
+        using var command = new SqliteCommand(queryConsulta, conection);
+
+        command.Parameters.Add(new SqliteParameter("@id", idPresupuesto));
+
+        List<PresupuestoDetalle> detalles = new List<PresupuestoDetalle>();
+
+        using (SqliteDataReader reader = command.ExecuteReader())
+        {
+            while (reader.Read())
+            {
+                detalles.Add(new PresupuestoDetalle
+                {
+                    Producto = _repositoryProducto.ObtenerProductoXId(Convert.ToInt32(reader["idProducto"])),
+                    Cantidad = Convert.ToInt32(reader["Cantidad"])
+                });
+            }
+        }
+        return detalles;
     }
     public Presupuesto ObtenerDetallesPorId(int idPresupuesto)
     {
@@ -114,16 +145,17 @@ public class PresupuestosRepository
         using var conection = new SqliteConnection(cadenaConexion);//Creo la conexion mediante el path de la BD
         conection.Open(); //Me conecto
 
-        string queryConsulta = "DELETE FROM Presupuesto WHERE IdPresupuesto = @id";
+        string queryConsulta = "DELETE FROM Presupuestos WHERE IdPresupuesto = @id";
 
         var command = new SqliteCommand(queryConsulta, conection);
         command.Parameters.Add(new SqliteParameter("@id", idPresupuesto));
-        command.ExecuteNonQuery();
 
         string queryConsultaDetalles = "DELETE FROM PresupuestosDetalle WHERE IdPresupuesto = @id";
         var commandDetalle = new SqliteCommand(queryConsultaDetalles, conection);
         commandDetalle.Parameters.Add(new SqliteParameter("@id", idPresupuesto));
+        
         commandDetalle.ExecuteNonQuery();
+        command.ExecuteNonQuery();
 
         conection.Close();
     }
